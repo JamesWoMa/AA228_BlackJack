@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 def hit(your_cards, deck):
-  random_draw = random.randint(0,len(deck))
+  random_draw = random.randint(0,len(deck)-1)
   next_deck = np.delete(deck, random_draw)
   your_cards.append(deck[random_draw])
   return your_cards, next_deck
