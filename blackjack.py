@@ -33,6 +33,11 @@ def main():
       action = int(action)
       if action == 1:
         your_cards, deck = hit(your_cards, deck)
+        if sum(your_cards) > 21:
+          print("\nYour cards:")
+          print(your_cards)
+          score = 0
+          game_over = True
       if action == 2:
         if 1 in your_cards:
           score = np.maximum(calc_score(sum(your_cards) + 10), calc_score(sum(your_cards)))
