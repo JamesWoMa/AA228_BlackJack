@@ -50,7 +50,7 @@ def qlearning(deck, alpha=0.5, gamma=0.95):
           q[a][s] += alpha * (r + gamma * (max(q[0][s_new], q[1][s_new]) - q[a][s]))
           s = s_new
         else:
-          q[a][s] += alpha * (-sc + gamma * (max(q[0][s_new], q[1][s_new]) - q[a][s]))
+          q[a][s] += alpha * (-20 + gamma * (max(q[0][s_new], q[1][s_new]) - q[a][s]))
           game_score.append(0)
           s, curr_d = init(deck)
       else:
