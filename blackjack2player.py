@@ -12,6 +12,31 @@ def gen_initial_deck():
     return deck
 
 def hit_q(your_cards, deck):
+    if len(deck) == 0: # run out of cards
+        # generate new deck
+        deck = gen_initial_deck()
+        #print('generated new deck: ', deck)
+        # remove your current cards from this deck
+        #print('you currently have the cards: ', your_cards)
+        i = 0
+        for card in your_cards:
+            #print('card: ',card)
+            for card_occurrence in range(card):
+                #print('removed', i)
+                deck = np.delete(deck, np.argmax(deck==(i+1)))
+            i += 1
+            
+        #print('new deck after removal: ', deck)
+
+    random_draw = random.randint(0,len(deck)-1) # draw random card from deck
+    next_deck = np.delete(deck, random_draw) # delete card from deck
+    cards = list(your_cards)
+    cards[deck[random_draw] - 1] += 1 # add drawn card to your cards
+    your_cards = tuple(cards)
+
+    return your_cards, next_deck, deck[random_draw] # return your cards, modified deck, the randomly drawn card
+
+def hit_q_old(your_cards, deck):
 	random_draw = random.randint(0,len(deck)-1)
 	next_deck = np.delete(deck, random_draw)
 	cards = list(your_cards)
@@ -58,7 +83,7 @@ def qlearning(deck, threshold, alpha=0.5, gamma=0.95):
 	q = [defaultdict(int) for i in range(2)]
 	s, curr_d, opp_sc = init(deck, threshold)
 	game_score = []
-	for iteration in range(500000):
+	for iteration in range(1000000):
 		state = (s, tuple(curr_d))
 		#epsilon greedy
 		if(np.random.rand() < 0.8):
@@ -82,7 +107,7 @@ def qlearning(deck, threshold, alpha=0.5, gamma=0.95):
 					q[a][state] += alpha * (-20 + gamma * (max(q[0][state_new], q[1][state_new]) - q[a][state]))
 				game_score.append(-opp_sc)
 
-				s, curr_d, opp_sc = init(deck, threshold)
+				s, curr_d, opp_sc = init(curr_d, threshold)
 		else:
 			sc = score(s)
 			if(s[0] > 0 and sc + 10 <= 21):
@@ -95,7 +120,7 @@ def qlearning(deck, threshold, alpha=0.5, gamma=0.95):
 				q[a][state] += alpha * -20
 
 			game_score.append(sc - opp_sc)
-			s, curr_d, opp_sc = init(deck, threshold)
+			s, curr_d, opp_sc = init(curr_d, threshold)
 
 	policy = defaultdict(int)
 	for s in q[0]:
@@ -141,11 +166,10 @@ def main():
 	wins = []
 	for threshold in [15, 16, 17]:
 		policy = qlearning(deck, threshold)
-		print(len(policy))
 		win_rate = 0
 		games = 5000
 		for i in range(5000):
-			s, curr_d, opp_sc = init(deck, threshold)
+			s, curr_d, opp_sc = init(curr_d, threshold)
 			state = (s, tuple(curr_d))
 			while(policy[state] == 1):
 				s, curr_d, _ = hit_q(s, curr_d)
