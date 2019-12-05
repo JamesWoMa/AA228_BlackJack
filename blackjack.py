@@ -29,7 +29,7 @@ def init(deck):
     s, deck, _ = hit_q(s, deck)
   return s, deck
 
-def qlearning(deck, alpha=0.5, gamma=0.95):
+def qlearning(deck, reward, alpha=0.5, gamma=0.95):
   q = [defaultdict(int) for i in range(2)]
   s, curr_d = init(deck)
   game_score = []
@@ -50,7 +50,7 @@ def qlearning(deck, alpha=0.5, gamma=0.95):
           q[a][s] += alpha * (r + gamma * (max(q[0][s_new], q[1][s_new]) - q[a][s]))
           s = s_new
         else:
-          q[a][s] += alpha * (-20 + gamma * (max(q[0][s_new], q[1][s_new]) - q[a][s]))
+          q[a][s] += alpha * (-reward + gamma * (max(q[0][s_new], q[1][s_new]) - q[a][s]))
           game_score.append(0)
           s, curr_d = init(deck)
       else:
@@ -96,55 +96,34 @@ def main():
   score = 0
 
   #Q-Learning
-  policy = qlearning(deck)
-  """
-  for p in policy:
-    if(policy[p] == 0):
-      if(sum([(i + 1) * p[i] for i in range(10)]) < 12):
-        print(p, sum([(i + 1) * p[i] for i in range(10)]))
-  """
+  rewards = [i for i in range(6)]
+  scores = []
+  for reward in rewards:
+    policy = qlearning(deck, reward)
+    for i in range(1000):
+      s, curr_d = init(deck)
+      while(policy[s] == 1):
+        s, curr_d, _ = hit_q(s, curr_d)
+        sc = sum([(i + 1) * s[i] for i in range(10)])
+        if(sc > 21):
+          break
 
-  for i in range(1000):
-    s, curr_d = init(deck)
-    while(policy[s] == 1):
-      s, curr_d, _ = hit_q(s, curr_d)
       sc = sum([(i + 1) * s[i] for i in range(10)])
-      if(sc > 21):
-        break
+      if(s[0] > 0 and sc + 10 <= 21):
+        sc += 10
+      score += calc_score(sc)
 
-    sc = sum([(i + 1) * s[i] for i in range(10)])
-    if(s[0] > 0 and sc + 10 <= 21):
-      sc += 10
-    score += calc_score(sc)
+    score /= 1000
+    # Final Payoff
+    print("Your Score:",score)
+    scores.append(score)
 
-  score /= 1000
-  # Play Game
-  """
-  while (not game_over):
-    print("\nYour cards:")
-    print(your_cards)
-    action = input("Hit or Stick? (1) for Hit, (2) for Stick: ")
-    if action == "1" or action == "2":
-      action = int(action)
-      if action == 1:
-        your_cards, deck = hit(your_cards, deck)
-        if sum(your_cards) > 21:
-          print("\nYour cards:")
-          print(your_cards)
-          score = 0
-          game_over = True
-      if action == 2:
-        if 1 in your_cards:
-          score = np.maximum(calc_score(sum(your_cards) + 10), calc_score(sum(your_cards)))
-        else:
-          score = calc_score(sum(your_cards))
-        game_over = True
-    else:
-      print("Action Not Recognized!")
-  """
-
-  # Final Payoff
-  print("Your Score:",score)
+  plt.figure()
+  plt.bar(rewards, scores)
+  plt.xlabel('Reward Values')
+  plt.ylabel('Scores')
+  plt.title('Expected Scores for Q-Learning Per Reward Values')
+  plt.savefig('rewards.png')
 
 if __name__ == '__main__':
   main()

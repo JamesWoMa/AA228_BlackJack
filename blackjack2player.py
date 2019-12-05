@@ -5,6 +5,12 @@ import matplotlib.pyplot as plt
 
 total_sum = 340
 
+def gen_initial_deck():
+    # Initial Deck
+    suite = np.concatenate((np.arange(1,10),np.ones(4)*10))
+    deck = np.repeat(suite, 4).astype(int)
+    return deck
+
 def hit_q(your_cards, deck):
 	random_draw = random.randint(0,len(deck)-1)
 	next_deck = np.delete(deck, random_draw)
@@ -48,7 +54,7 @@ def init(deck, threshold):
 	sc, deck = opp_strat(o, deck, threshold)
 	return s, deck, sc 
 
-def qlearning(deck, threshold, r, alpha=0.5, gamma=0.95):
+def qlearning(deck, threshold, alpha=0.5, gamma=0.95):
 	q = [defaultdict(int) for i in range(2)]
 	s, curr_d, opp_sc = init(deck, threshold)
 	game_score = []
@@ -72,8 +78,10 @@ def qlearning(deck, threshold, r, alpha=0.5, gamma=0.95):
 				s = s_new
 				curr_d = next_d
 			else:
-				q[a][state] += alpha * (-r + gamma * (max(q[0][state_new], q[1][state_new]) - q[a][state]))
+				if(opp_sc != 0):
+					q[a][state] += alpha * (-20 + gamma * (max(q[0][state_new], q[1][state_new]) - q[a][state]))
 				game_score.append(-opp_sc)
+
 				s, curr_d, opp_sc = init(deck, threshold)
 		else:
 			sc = score(s)
@@ -82,9 +90,9 @@ def qlearning(deck, threshold, r, alpha=0.5, gamma=0.95):
 				sc += 10
 			sc = calc_score(sc)
 			if(sc > opp_sc):
-				q[a][state] += alpha * r
-			else:
-				q[a][state] += alpha * -r
+				q[a][state] += alpha * 20
+			elif(sc < opp_sc):
+				q[a][state] += alpha * -20
 
 			game_score.append(sc - opp_sc)
 			s, curr_d, opp_sc = init(deck, threshold)
@@ -122,7 +130,7 @@ def main():
 	# Initial Deck
 	suite = np.concatenate((np.arange(1,10),np.ones(4)*10))
 	deck = np.repeat(suite, 4).astype(int)
-
+	curr_d = deck
 	# Dictionary of cards left
 	your_cards = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 	game_over = False
@@ -131,12 +139,13 @@ def main():
 
 	#Q-Learning
 	wins = []
-	for r in [10, 15, 20, 25, 30]:
-		policy = qlearning(deck, 14, r)
+	for threshold in [15, 16, 17]:
+		policy = qlearning(deck, threshold)
+		print(len(policy))
 		win_rate = 0
 		games = 5000
 		for i in range(5000):
-			s, curr_d, opp_sc = init(deck, 14)
+			s, curr_d, opp_sc = init(deck, threshold)
 			state = (s, tuple(curr_d))
 			while(policy[state] == 1):
 				s, curr_d, _ = hit_q(s, curr_d)
@@ -161,12 +170,14 @@ def main():
 		print("Score against opponent:", win_rate)
 		wins.append(win_rate)
 
+	"""
 	plt.figure()
-	plt.bar([i for i in range(5)], wins)
-	plt.xlabel('Reward Values')
+	plt.bar([i for i in range(22)], wins)
+	plt.xlabel('Threshold Values')
 	plt.ylabel('Win Rates')
-	plt.title('Win Rates for Q-Learning Per Reward Values')
-	plt.savefig('rewards.png')
+	plt.title('Win Rates for Q-Learning Per Threshold')
+	plt.savefig('win_rates_new.png')
+	"""
 
 if __name__ == '__main__':
 	main()
