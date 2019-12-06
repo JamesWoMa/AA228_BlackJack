@@ -9,37 +9,13 @@ def hit(your_cards, deck):
     your_cards.append(deck[random_draw])
     return your_cards, next_deck
 
-def gen_initial_deck():
-    # Initial Deck
-    suite = np.concatenate((np.arange(1,10),np.ones(4)*10))
-    deck = np.repeat(suite, 4).astype(int)
-    return deck
-
-# TODO
 def hit_q(your_cards, deck):
-    if len(deck) == 0: # run out of cards
-        # generate new deck
-        deck = gen_initial_deck()
-        #print('generated new deck: ', deck)
-        # remove your current cards from this deck
-        #print('you currently have the cards: ', your_cards)
-        i = 0
-        for card in your_cards:
-            #print('card: ',card)
-            for card_occurrence in range(card):
-                #print('removed', i)
-                deck = np.delete(deck, np.argmax(deck==(i+1)))
-            i += 1
-            
-        #print('new deck after removal: ', deck)
-
-    random_draw = random.randint(0,len(deck)-1) # draw random card from deck
-    next_deck = np.delete(deck, random_draw) # delete card from deck
+    random_draw = random.randint(0,len(deck)-1)
+    next_deck = np.delete(deck, random_draw)
     cards = list(your_cards)
-    cards[deck[random_draw] - 1] += 1 # add drawn card to your cards
+    cards[deck[random_draw] - 1] += 1
     your_cards = tuple(cards)
-
-    return your_cards, next_deck, deck[random_draw] # return your cards, modified deck, the randomly drawn card
+    return your_cards, next_deck, deck[random_draw]
 
 def calc_score(total):
     if total > 21:
@@ -49,15 +25,15 @@ def calc_score(total):
 
 def init(deck):
     s = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    for i in range(2): # initially, hit twice
+    for i in range(2):
         s, deck, _ = hit_q(s, deck)
     return s, deck
 
-def qlearning(deck, qiterations=10000, alpha=0.5, gamma=0.95):
+def qlearning(deck, alpha=0.5, gamma=0.95):
     q = [defaultdict(int) for i in range(2)]
     s, curr_d = init(deck)
     game_score = []
-    for iteration in range(qiterations):
+    for iteration in range(100000):
             if(np.random.rand() < 0.8):
                 if(q[0][s] > q[1][s]):
                     a = 0
@@ -76,14 +52,14 @@ def qlearning(deck, qiterations=10000, alpha=0.5, gamma=0.95):
                 else:
                     q[a][s] += alpha * (-sc + gamma * (max(q[0][s_new], q[1][s_new]) - q[a][s]))
                     game_score.append(0)
-                    s, curr_d = init(curr_d)
+                    s, curr_d = init(deck)
             else:
                 sc = sum([(i + 1) * s[i] for i in range(10)])
                 if(s[0] > 0 and sc + 10 <= 21):
                     q[a][s] += alpha * 10
                     sc += 10
                 game_score.append(sc)
-                s, curr_d = init(curr_d)
+                s, curr_d = init(deck)
 
     policy = defaultdict(int)
     for s in q[0]:
@@ -93,7 +69,7 @@ def qlearning(deck, qiterations=10000, alpha=0.5, gamma=0.95):
             policy[s] = 1
 
     game_avg = []
-    n_games_avg_over = 10000
+    n_games_avg_over = 5000
     for i in range(len(game_score) // n_games_avg_over):
         avg = 0
         for j in range(n_games_avg_over):
@@ -105,19 +81,18 @@ def qlearning(deck, qiterations=10000, alpha=0.5, gamma=0.95):
     plt.xlabel('Game Numbers (per ' + str(n_games_avg_over) + ')')
     plt.ylabel('Score')
     plt.title('Q-Learning Scores while Learning')
-    plt.savefig('game_scores_noshuffle_q100000_navg5000.png')
-
-    with open('blackjack_noshuffle_game_avg.txt', 'w') as filehandle:
-        for listitem in game_avg:
-            filehandle.write('%s\n' % listitem)
-
-    print(len(q[0]), len(q[1]))
+    plt.savefig('game_scores_q100000_navg5000.png')
 
     return policy
 
-def playGame(qiterations):
+def main():
+    
+    
+    # ORIGINAL VERSION
 
-    deck = gen_initial_deck()
+    # Initial Deck
+    suite = np.concatenate((np.arange(1,10),np.ones(4)*10))
+    deck = np.repeat(suite, 4).astype(int)
 
     # Dictionary of cards left
     your_cards = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
@@ -125,22 +100,18 @@ def playGame(qiterations):
     score = 0
 
     #Q-Learning
-    policy = qlearning(deck, qiterations)
+    policy = qlearning(deck)
     """
     for p in policy:
         if(policy[p] == 0):
             if(sum([(i + 1) * p[i] for i in range(10)]) < 12):
                 print(p, sum([(i + 1) * p[i] for i in range(10)]))
     """
-    persistent_curr_d = []
+
     for i in range(1000):
-        
-        if i == 0: # use initial deck on first round
-            s, curr_d = init(deck)
-        else: # use existing deck
-            s, curr_d = init(persistent_curr_d)
+        s, curr_d = init(deck)
         while(policy[s] == 1):
-            s, curr_d, _ = hit_q(s, curr_d) # hitq(your_cards, deck)
+            s, curr_d, _ = hit_q(s, curr_d)
             sc = sum([(i + 1) * s[i] for i in range(10)])
             if(sc > 21):
                 break
@@ -149,8 +120,6 @@ def playGame(qiterations):
         if(s[0] > 0 and sc + 10 <= 21):
             sc += 10
         score += calc_score(sc)
-            
-        persistent_curr_d = curr_d # store current deck for next round
 
     score /= 1000
     # Play Game
@@ -179,19 +148,11 @@ def playGame(qiterations):
     """
 
     # Final Payoff
-    #print("Your Score:",score)
-    return score
+    print("Your Score:",score)
 
-def main():
-    scores = []
-    for qiterations in range(100, 100001, 4500):
-        score = playGame(qiterations)
-        print('MY SCORE!!', score)
-        scores.append(score)
-    print(scores)
-    with open('blackjack_noshuffle_game_avg.txt', 'w') as filehandle:
-        for listitem in scores:
-            filehandle.write('%s\n' % listitem)
+
+
+
 
 if __name__ == '__main__':
     main()
